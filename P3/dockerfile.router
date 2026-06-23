@@ -1,0 +1,24 @@
+FROM frrouting/frr:latest
+
+RUN apk add --no-cache \
+    iproute2 \
+    bridge-utils \
+    tcpdump \
+    iputils \
+    tini
+
+COPY frr/daemons /etc/frr/daemons
+COPY frr/vtysh.conf /etc/frr/vtysh.conf
+
+RUN mkdir -p /etc/frr/configs
+COPY frr/frr-rr.conf /etc/frr/configs/frr-rr.conf
+COPY frr/frr-leaf2.conf /etc/frr/configs/frr-leaf2.conf
+COPY frr/frr-leaf3.conf /etc/frr/configs/frr-leaf3.conf
+COPY frr/frr-leaf4.conf /etc/frr/configs/frr-leaf4.conf
+RUN chown -R frr:frr /etc/frr/configs
+
+COPY start-router.sh /start.sh
+RUN chmod +x /start.sh
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["/start.sh"]

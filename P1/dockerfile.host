@@ -1,0 +1,18 @@
+FROM alpine:latest
+
+RUN apk add --no-cache \
+    busybox-extras \
+    iproute2 \
+    iputils \
+    tcpdump \
+    tini
+
+# create the interfaces file that GNS3 will append to
+RUN mkdir -p /etc/network
+RUN echo "" > /etc/network/interfaces
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["/entrypoint.sh"]

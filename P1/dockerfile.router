@@ -1,0 +1,23 @@
+FROM frrouting/frr:latest
+
+# image is Alpine — use apk only
+RUN apk add --no-cache \
+    iproute2 \
+    bridge-utils \
+    iputils \
+    tcpdump \
+    ifupdown \
+    tini
+
+# enable required daemons
+RUN sed -i 's/bgpd=no/bgpd=yes/' /etc/frr/daemons && \
+    sed -i 's/ospfd=no/ospfd=yes/' /etc/frr/daemons && \
+    sed -i 's/isisd=no/isisd=yes/' /etc/frr/daemons
+
+COPY frr.conf /etc/frr/frr.conf
+COPY vtysh.conf /etc/frr/vtysh.conf
+
+RUN chown -R frr:frr /etc/frr
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["/usr/lib/frr/docker-start"]

@@ -1,0 +1,14 @@
+FROM alpine:latest
+
+RUN apk add --no-cache \
+    busybox-extras \
+    iproute2 \
+    iputils \
+    tcpdump \
+    tini
+
+COPY start-host.sh /start.sh
+RUN chmod +x /start.sh
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["/start.sh"]
