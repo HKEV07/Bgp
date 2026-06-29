@@ -1,0 +1,72 @@
+# ============================================================
+# _login-2 : VTEP / Leaf router
+# Role      : BGP EVPN VTEP (client of RR)
+# Loopback  : 1.1.1.2/32  <- VTEP source IP, used in VXLAN
+# eth0      : link to _login-1 RR  (10.1.1.2/30)
+# eth1      : link to host_login-1
+# AS        : 1
+# VNI       : 10  (VXLAN ID 10)
+# Bridge    : br0
+# VXLAN dev : vxlan10
+# ============================================================
+
+# --- /etc/frr/zebra.conf ---
+# hostname _login-2
+# !
+# interface lo
+#  ip address 1.1.1.2/32
+# !
+# interface eth0
+#  ip address 10.1.1.2/30
+# !
+
+# --- /etc/frr/ospfd.conf ---
+# hostname _login-2
+# !
+# router ospf
+#  ospf router-id 1.1.1.2
+#  network 1.1.1.2/32 area 0    <- advertise loopback so RR & peers can reach us
+#  network 10.1.1.0/30 area 0   <- uplink to RR
+# !
+
+# --- /etc/frr/bgpd.conf ---
+# hostname _login-2
+# !
+# router bgp 1
+#  bgp router-id 1.1.1.2
+#  !
+#  # Only peer with the RR; RR reflects routes to all other VTEPs
+#  neighbor 1.1.1.1 remote-as 1
+#  neighbor 1.1.1.1 update-source lo
+#  !
+#  address-family l2vpn evpn
+#   neighbor 1.1.1.1 activate
+#   advertise-all-vni              <- advertise all locally attached VNIs
+#  exit-address-family
+# !
+
+# --- VXLAN + bridge setup (run at startup / in GNS3 start script) ---
+#
+# 1. Create VXLAN interface (dynamic / EVPN mode – no static remote)
+#    ip link add vxlan10 type vxlan id 10 dstport 4789 local 1.1.1.2 nolearning
+#    ip link set vxlan10 up
+#
+# 2. Create bridge and attach VXLAN and host-facing port
+#    ip link add br0 type bridge
+#    ip link set br0 up
+#    ip link set vxlan10 master br0
+#    ip link set eth1 master br0       <- eth1 faces host_login-1
+#
+# nolearning is important: MAC learning is done by BGP EVPN (not by flooding)
+
+# --- /etc/network/interfaces startup ---
+#   ip addr add 1.1.1.2/32 dev lo
+#   ip addr add 10.1.1.2/30 dev eth0
+
+# ============================================================
+# Verification commands (on _login-2)
+# ============================================================
+# show ip ospf neighbor                 -> should see _login-1
+# show bgp l2vpn evpn                   -> type-2 (MAC) and type-3 (IMET) routes
+# brctl showmacs br0                    -> local + learned MAC addresses
+# bridge fdb show dev vxlan10           -> VTEP-to-MAC mappings

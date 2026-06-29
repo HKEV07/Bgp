@@ -4,20 +4,22 @@ export PATH=/usr/sbin:/sbin:/usr/bin:/bin:/gns3/bin:$PATH
 
 echo "=== router starting, hostname: $HOSTNAME ==="
 
-case "$HOSTNAME" in
-    *wil-1*)
+router_id="${HOSTNAME##*-}"
+
+case "$router_id" in
+    1)
         echo "=== loading RR config ==="
         cp /etc/frr/configs/frr-rr.conf /etc/frr/frr.conf
         ;;
-    *wil-2*)
+    2)
         echo "=== loading leaf2 config ==="
         cp /etc/frr/configs/frr-leaf2.conf /etc/frr/frr.conf
         ;;
-    *wil-3*)
+    3)
         echo "=== loading leaf3 config ==="
         cp /etc/frr/configs/frr-leaf3.conf /etc/frr/frr.conf
         ;;
-    *wil-4*)
+    4)
         echo "=== loading leaf4 config ==="
         cp /etc/frr/configs/frr-leaf4.conf /etc/frr/frr.conf
         ;;

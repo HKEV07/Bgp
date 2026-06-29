@@ -1,0 +1,52 @@
+# ============================================================
+# host_login-1  (also applies to host_login-2 and host_login-3)
+# Role : end host in the VXLAN segment
+# Image: busybox / Alpine (Part 1 host image)
+# eth0 : connected to its local VTEP's br0 bridge port
+# ============================================================
+
+# No IP address is assigned by default (subject requirement).
+# During testing you can assign one manually:
+#
+#   ip addr add 20.1.1.1/24 dev eth0   (host_login-1)
+#   ip addr add 20.1.1.2/24 dev eth0   (host_login-2)
+#   ip addr add 20.1.1.3/24 dev eth0   (host_login-3)
+#
+# After assignment the VTEPs will automatically discover
+# the MACs via BGP EVPN type-2 routes (no flooding needed
+# because nolearning + advertise-all-vni are set on VTEPs).
+
+# ============================================================
+# Address plan summary (P3)
+# ============================================================
+#
+# Loopbacks (VTEP tunnel endpoints):
+#   1.1.1.1/32  _login-1  (RR)
+#   1.1.1.2/32  _login-2  (VTEP)
+#   1.1.1.3/32  _login-3  (VTEP)
+#   1.1.1.4/32  _login-4  (VTEP)
+#
+# Underlay point-to-point links (OSPF area 0):
+#   10.1.1.0/30   _login-1 (.1) <-> _login-2 (.2)
+#   10.1.1.4/30   _login-1 (.5) <-> _login-3 (.6)
+#   10.1.1.8/30   _login-1 (.9) <-> _login-4 (.10)
+#
+# Overlay (VXLAN VNI 10 / bridge br0):
+#   20.1.1.0/24   host segment (optional IPs for ping test)
+#   20.1.1.1      host_login-1
+#   20.1.1.2      host_login-2
+#   20.1.1.3      host_login-3
+
+# ============================================================
+# Expected BGP EVPN route types
+# ============================================================
+# Type 3 (IMET / Inclusive Multicast Ethernet Tag):
+#   - Advertised automatically by each VTEP when VXLAN is up.
+#   - Tells other VTEPs "I am reachable at this tunnel IP for VNI 10".
+#   - Present BEFORE any host comes up.
+#
+# Type 2 (MAC/IP Advertisement):
+#   - Advertised when a host's MAC appears on a VTEP's bridge.
+#   - Created AUTOMATICALLY – no IP assignment needed.
+#   - Allows remote VTEPs to install a forwarding entry
+#     pointing to the originating VTEP.
