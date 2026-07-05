@@ -1,18 +1,33 @@
-auto lo
-iface lo inet loopback
-    up /sbin/ip addr add 1.1.1.4/32 dev lo
+ip link add br0 type bridge
+ip link set dev br0 up
+ip link add vxlan10 type vxlan id 10 dstport 4789
+ip link set dev vxlan10 up
+brctl addif br0 vxlan10
+brctl addif br0 eth0
 
-auto eth0
-iface eth0 inet static
-    address 10.1.1.10
-    netmask 255.255.255.252
-    up /sbin/ip link add vxlan10 type vxlan id 10 dstport 4789 local 1.1.1.4 nolearning dev lo
-    up /sbin/ip link set vxlan10 up
-    up /sbin/ip link add br0 type bridge
-    up /sbin/ip link set br0 up
-    up /sbin/ip link set eth1 master br0
-    up /sbin/ip link set vxlan10 master br0
+# Shell
+vtysh
+conf t
 
-auto eth1
-iface eth1 inet manual
-    up /sbin/ip link set eth1 up
+
+interface eth2
+  ip address 10.1.1.10/30
+  ip ospf area 0
+
+interface lo
+  ip address 1.1.1.4/32
+  ip ospf area 0
+
+router bgp 1
+  neighbor 1.1.1.1 remote-as 1
+  neighbor 1.1.1.1 update-source lo
+
+address-family l2vpn evpn
+  neighbor 1.1.1.1 activate
+  advertise-all-vni
+exit-address-family
+
+router ospf
+exit
+end
+write memory
